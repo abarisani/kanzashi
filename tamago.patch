@@ -1,0 +1,102 @@
+diff --git a/amd64/exception.go b/amd64/exception.go
+index 6c5dbba..1a554ff 100644
+--- a/amd64/exception.go
++++ b/amd64/exception.go
+@@ -18,9 +18,20 @@ var (
+ 	isr        uintptr
+ 	eip        uintptr
+ 	isThrowing bool
++	fault      int
+ )
+ 
+-func currentVectorNumber() (id int) {
++func Faulty() bool {
++	if fault > 0 {
++		fault = 0
++		return true
++	} else {
++		return false
++	}
++}
++
++// VectorNumber returns the last caught exception/interrupt vector offset.
++func VectorNumber() (id int) {
+ 	id = int(isr - irqHandlerAddr)
+ 
+ 	if id >= 0 {
+@@ -39,7 +50,7 @@ func DefaultExceptionHandler() {
+ 
+ 	isThrowing = true
+ 
+-	print("exception: vector ", currentVectorNumber(), " \n")
++	print("exception: vector ", VectorNumber(), " \n")
+ 	exception.Throw(eip)
+ }
+ 
+diff --git a/amd64/exception.s b/amd64/exception.s
+index 7953e56..1dacef7 100644
+--- a/amd64/exception.s
++++ b/amd64/exception.s
+@@ -12,21 +12,40 @@
+ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
+ 	CLI
+ 
++	// save caller registers
++	PUSHQ	AX
++
+ 	// find ISR offset from stack linking information (see irqHandler)
+-	MOVQ	isr+(8*0)(SP), R12
+-	SUBQ	$(const_callSize), R12
+-	MOVQ	R12, ·isr(SB)
++	MOVQ	isr+(8*0)(SP), AX
++	SUBQ	$(const_callSize), AX
++	MOVQ	AX, ·isr(SB)
++	MOVQ	$1, ·fault(SB)
+ 
+ 	// find EIP from handler's stack
+-	ADDQ	$(8*2), SP
+-	MOVQ	eip+(8*0)(SP), R12
+-	MOVQ	R12, ·eip(SB)
++	MOVQ	eip+(8*2)(SP), AX
++	MOVQ	AX, ·eip(SB)
+ 
+-	// call exception handler on system stack (g0)
+ 	MOVQ	$·SystemExceptionHandler(SB), AX
+-	MOVQ	(AX), AX
+-	PUSHQ	AX
+-	CALL	runtime·systemstack(SB)
++	CMPQ	AX, $0
++	JE	done
++
++	// call exception handler on system stack (g0)
++	//MOVQ	(AX), AX
++	//PUSHQ	AX
++	//CALL	runtime·systemstack(SB)
++	//POPQ	AX
++done:
++	MOVQ	24(SP), AX
++	ADDQ	$2, AX
++	MOVQ	AX, 24(SP)
++
++	// restore caller registers
++	POPQ	AX
++
++	// return to caller
++	ADDQ	$16, SP
++	STI
++	IRETQ
+ 
+ // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
+ // which save the vector PC on the stack, is built to use as IDT offsets.
+diff --git a/amd64/irq.go b/amd64/irq.go
+index 4eb8d39..aa518d4 100644
+--- a/amd64/irq.go
++++ b/amd64/irq.go
+@@ -169,6 +169,6 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
+ 		// (see ·handleInterrupt in irq.s).
+ 		time.Sleep(math.MaxInt64)
+ 
+-		isr(currentVectorNumber())
++		isr(VectorNumber())
+ 	}
+ }
