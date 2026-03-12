@@ -1,0 +1,174 @@
+//go:build gemini
+
+package llm
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
+
+	"github.com/usbarmory/kanzashi/tool"
+)
+
+var GeminiAPIKey string
+var GeminiModel = "gemini-2.5-pro"
+
+func getTools() *genai.Tool {
+	return &genai.Tool{
+		FunctionDeclarations: []*genai.FunctionDeclaration{
+			{
+				Name:        "reg_read32",
+				Description: "Read a 32-bit value from a memory-mapped I/O register at the given physical address.",
+				Parameters: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"address"},
+					Properties: map[string]*genai.Schema{
+						"address": {Type: genai.TypeInteger, Description: "Physical memory address (e.g. 0xFEB00000)"},
+					},
+				},
+			},
+			{
+				Name:        "reg_write32",
+				Description: "Write a 32-bit value to a memory-mapped I/O register.",
+				Parameters: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"address", "value"},
+					Properties: map[string]*genai.Schema{
+						"address": {Type: genai.TypeInteger},
+						"value":   {Type: genai.TypeInteger},
+					},
+				},
+			},
+			{
+				Name:        "reg_read64",
+				Description: "Read a 64-bit value from a memory-mapped I/O register at the given physical address.",
+				Parameters: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"address"},
+					Properties: map[string]*genai.Schema{
+						"address": {Type: genai.TypeInteger, Description: "Physical memory address (e.g. 0xFEB00000)"},
+					},
+				},
+			},
+			{
+				Name:        "reg_write64",
+				Description: "Write a 64-bit value to a memory-mapped I/O register.",
+				Parameters: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"address", "value"},
+					Properties: map[string]*genai.Schema{
+						"address": {Type: genai.TypeInteger},
+						"value":   {Type: genai.TypeInteger},
+					},
+				},
+			},
+			{
+				Name:        "msr_read",
+				Description: "Read a 64-bit value from a machine specific register at the given physical address.",
+				Parameters: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"address"},
+					Properties: map[string]*genai.Schema{
+						"address": {Type: genai.TypeInteger, Description: "Register address (e.g. 0xFEB00000)"},
+					},
+				},
+			},
+			{
+				Name:        "msr_write",
+				Description: "Write a 64-bit value to a machine specific register.",
+				Parameters: &genai.Schema{
+					Type:     genai.TypeObject,
+					Required: []string{"address", "value"},
+					Properties: map[string]*genai.Schema{
+						"address": {Type: genai.TypeInteger},
+						"value":   {Type: genai.TypeInteger},
+					},
+				},
+			},
+		},
+	}
+}
+
+func executeTool(call genai.FunctionCall) interface{} {
+	switch call.Name {
+	case "reg_read32":
+		addr := uint32(call.Args["address"].(float64))
+		val, err := tool.Read32(addr)
+		log.Printf("[mmio] READ32 %#x => %#x (%v)", addr, val, err)
+		return fmt.Sprintf("0x%08X (err: %v)", val, err)
+
+	case "reg_write32":
+		addr := uint32(call.Args["address"].(float64))
+		val := uint32(call.Args["value"].(float64))
+		err := tool.Write32(addr, val)
+		log.Printf("[mmio] WRITE32 %#x <= %#x (%v)", addr, val, err)
+		return "ok"
+	case "reg_read64":
+		addr := uint64(call.Args["address"].(float64))
+		val, err := tool.Read64(addr)
+		log.Printf("[mmio] READ64 %#x => %#x (%v)", addr, val, err)
+		return fmt.Sprintf("0x%08X (err: %v)", val, err)
+
+	case "reg_write64":
+		addr := uint64(call.Args["address"].(float64))
+		val := uint64(call.Args["value"].(float64))
+		err := tool.Write64(addr, val)
+		log.Printf("[mmio] WRITE64 %#x <= %#x (%v)", addr, val, err)
+		return "ok"
+	default:
+		return "unknown tool"
+	}
+}
+
+func RunAgent(ctx context.Context, system, user string) {
+	log.Printf("[kanzashi] initializing gemini agent (%s)", GeminiModel)
+
+	client, err := genai.NewClient(ctx, option.WithAPIKey(GeminiAPIKey))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	model := client.GenerativeModel(GeminiModel)
+	model.SystemInstruction = genai.NewUserContent(genai.Text(system))
+	model.Tools = []*genai.Tool{getTools()}
+
+	session := model.StartChat()
+	var prompt []genai.Part
+	prompt = append(prompt, genai.Text(user))
+
+	for {
+		resp, err := session.SendMessage(ctx, prompt...)
+		if err != nil {
+			log.Fatalf("genai error: %+v", err)
+		}
+
+		var toolCalls []genai.FunctionCall
+		for _, part := range resp.Candidates[0].Content.Parts {
+			if txt, ok := part.(genai.Text); ok {
+				fmt.Printf("\n[gemini] %s\n", txt)
+			}
+			if call, ok := part.(genai.FunctionCall); ok {
+				toolCalls = append(toolCalls, call)
+			}
+		}
+
+		if len(toolCalls) == 0 {
+			break
+		}
+
+		prompt = nil
+
+		for _, call := range toolCalls {
+			result := executeTool(call)
+			prompt = append(prompt, genai.FunctionResponse{
+				Name:     call.Name,
+				Response: map[string]interface{}{"result": result},
+			})
+		}
+	}
+}

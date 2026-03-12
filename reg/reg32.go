@@ -13,7 +13,6 @@
 package reg
 
 import (
-	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -82,7 +81,6 @@ func ClearN(addr uint32, pos int, mask int) {
 func Move(dst uint32, src uint32)
 
 func Read(addr uint32) uint32 {
-	log.Printf("read %x", addr)
 	reg := (*uint32)(unsafe.Pointer(uintptr(addr)))
 	return atomic.LoadUint32(reg)
 }
@@ -91,7 +89,6 @@ func Read(addr uint32) uint32 {
 func Write(addr uint32, val uint32)
 
 func Write32(addr uint32, val uint32) {
-	log.Printf("write %x < %x", addr, val)
 	Write(addr, val)
 }
 

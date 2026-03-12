@@ -2,84 +2,60 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
 
 	"github.com/usbarmory/tamago/amd64"
-	"github.com/usbarmory/tamago/board/qemu/microvm"
-	"github.com/usbarmory/tamago/kvm/clock"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
-
-	"github.com/usbarmory/kanzashi/reg"
+	"github.com/usbarmory/kanzashi/llm"
+	"github.com/usbarmory/kanzashi/network"
+	"github.com/usbarmory/kanzashi/tool"
 )
 
-const ClaudeApiKey = "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"
+//go:embed log.txt
+var pastSession string
 
 func init() {
-	print("\n")
-	microvm.AMD64.SetTime(kvmclock.Now().UnixNano())
-
 	amd64.SystemExceptionHandler = nil
-}
-
-var fault = -1
-
-func Read(addr uint32) (val uint32, err error) {
-	val = reg.Read(addr)
-	if amd64.Faulty() {
-		err = fmt.Errorf("fault")
-	}
-
-	return
-}
-
-func Write(addr uint32, val uint32) (err error) {
-	reg.Write32(addr, val)
-	if amd64.Faulty() {
-		err = fmt.Errorf("fault")
-	}
-
-	return
 }
 
 func main() {
 	log.SetFlags(0)
-	log.Printf("[kanzashi] starting network")
+	log.Printf("\n[kanzashi] starting network")
 
-	if _, err := Read(0); err == nil {
+	if _, err := tool.Read32(0); err == nil {
 		log.Fatalf("[kanxashi] exception handler override error")
 	}
 
-	if err := StartNetwork(); err != nil {
+	if err := network.Start(); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("[kanzashi] instantiating claude client")
-
-	client := anthropic.NewClient(option.WithAPIKey(ClaudeApiKey))
-
-	system := `You are a hypervisor security researcher running bare metal inside a QEMU microvm on AMD64.
-You have direct access to physical memory via reg_read and reg_write tools.
+	system := `You are a hypervisor security researcher running bare metal inside a QEMU VM on AMD64.
+You have direct access to physical memory via reg_read32, reg_write32, reg_read64, reg_write64, msr_read, msr_write tools.
 Your goal is to autonomously explore the I/O peripheral range to find hypervisor escape attack surfaces and crash the hypervisor (not yourself).
 
 Approach:
-1. Assume a microvm QEMU machine.
-2. Enumerate peripherals.
-4. Do not document anomalous hypervisor responses, just aim for a DoS or privilege escalation on the hypervisor (QEMU).
-5. Avoid touching the VirtIO network device that is providing access to your session.
-6. Never attempt to read or write 0x0 as you will trigger an exception.
-7. In fact never attempt to read addresses which are known to trigger an exception.
+1. Assume a QEMU VM (either q35 or microvm).
+2. Focus on the IOAPIC and try to crash the VM with with malicious valyes in IRQ IRQ redirection entries.
+3. Do not document anomalous hypervisor responses, just aim for a privilege escalation on the hypervisor (QEMU).
+4. Avoid touching the VirtIO network device that is providing access to your session.
+5. If you crash the hypervisor it is a result, if you are still alive it means you had no effect on the host.
 
 Think step by step and use the tools iteratively.`
 
-	user := "Begin autonomous security analysis of QEMU microvm I/O space. Explore freely."
+	user := fmt.Sprintf("Begin autonomous security analysis of QEMU VM. Explore freely. Briefly explain what you are doing as you go.")
 
-	ctx := context.Background()
-	fmt.Println("[kanzashi] starting agentic microvm audit...")
-
-	if err := runAgent(ctx, &client, system, user); err != nil {
-		log.Fatal(err)
+	if len(pastSession) > 0 {
+		log.Printf("[kanzashi] using past session log (%d bytes)", len(pastSession))
+		user += fmt.Sprintf("Resume from the last session, here are the logs of it:%s", pastSession)
 	}
+
+	log.Printf("[kanzashi] starting agentic QEMU audit...")
+	log.Printf("\n%s\n%s\n\n", system, user)
+
+	llm.RunAgent(context.Background(), system, user)
+
+	log.Printf("[kanzashi] graceful exit")
 }

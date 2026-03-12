@@ -1,4 +1,6 @@
-package main
+//go:build microvm
+
+package network
 
 import (
 	"fmt"
@@ -7,9 +9,10 @@ import (
 	"runtime/goos"
 
 	"github.com/usbarmory/tamago/amd64"
-	"github.com/usbarmory/tamago/soc/intel/ioapic"
 	"github.com/usbarmory/tamago/board/qemu/microvm"
+	"github.com/usbarmory/tamago/kvm/clock"
 	"github.com/usbarmory/tamago/kvm/virtio"
+	"github.com/usbarmory/tamago/soc/intel/ioapic"
 	"github.com/usbarmory/virtio-net"
 
 	_ "golang.org/x/crypto/x509roots/fallback"
@@ -26,7 +29,11 @@ var (
 	Resolver = "8.8.8.8:53"
 )
 
-func StartNetwork() (err error) {
+func init() {
+	microvm.AMD64.SetTime(kvmclock.Now().UnixNano())
+}
+
+func Start() (err error) {
 	iface := vnet.Interface{}
 
 	dev := &vnet.Net{
