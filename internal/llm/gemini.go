@@ -1,3 +1,8 @@
+// Copyright (c) The kanzashi Authors. All Rights Reserved.
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
 //go:build gemini
 
 package llm
@@ -10,7 +15,7 @@ import (
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 
-	"github.com/usbarmory/kanzashi/tool"
+	"github.com/usbarmory/kanzashi/internal/tool"
 )
 
 var GeminiAPIKey string
@@ -117,6 +122,18 @@ func executeTool(call genai.FunctionCall) interface{} {
 		val := uint64(call.Args["value"].(float64))
 		err := tool.Write64(addr, val)
 		log.Printf("[mmio] WRITE64 %#x <= %#x (%v)", addr, val, err)
+		return "ok"
+	case "msr_read":
+		addr := uint64(call.Args["address"].(float64))
+		val, err := tool.ReadMSR(addr)
+		log.Printf("[msr] READ64 %#x => %#x (%v)", addr, val, err)
+		return fmt.Sprintf("0x%08X (err: %v)", val, err)
+
+	case "msr_write":
+		addr := uint64(call.Args["address"].(float64))
+		val := uint64(call.Args["value"].(float64))
+		err := tool.WriteMSR(addr, val)
+		log.Printf("[msr] WRITE64 %#x <= %#x (%v)", addr, val, err)
 		return "ok"
 	default:
 		return "unknown tool"

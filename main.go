@@ -1,3 +1,8 @@
+// Copyright (c) The kanzashi Authors. All Rights Reserved.
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -8,9 +13,9 @@ import (
 
 	"github.com/usbarmory/tamago/amd64"
 
-	"github.com/usbarmory/kanzashi/llm"
-	"github.com/usbarmory/kanzashi/network"
-	"github.com/usbarmory/kanzashi/tool"
+	"github.com/usbarmory/kanzashi/internal/llm"
+	"github.com/usbarmory/kanzashi/internal/network"
+	"github.com/usbarmory/kanzashi/internal/tool"
 )
 
 //go:embed log.txt
@@ -24,6 +29,12 @@ func main() {
 	log.SetFlags(0)
 	log.Printf("\n[kanzashi] starting network")
 
+	// The `tamago.patch` included in this repository modifies tamago
+	// exception handler to ignore faults and skip the 2-bytes instruction
+	// which caused it, the fault is reported in a boolean for tooling
+	// awareness of the event.
+	//
+	// This check ensures the patch is applied.
 	if _, err := tool.Read32(0); err == nil {
 		log.Fatalf("[kanxashi] exception handler override error")
 	}
@@ -38,7 +49,7 @@ Your goal is to autonomously explore the I/O peripheral range to find hypervisor
 
 Approach:
 1. Assume a QEMU VM (either q35 or microvm).
-2. Focus on the IOAPIC and try to crash the VM with with malicious valyes in IRQ IRQ redirection entries.
+2. Focus on PCI handling.
 3. Do not document anomalous hypervisor responses, just aim for a privilege escalation on the hypervisor (QEMU).
 4. Avoid touching the VirtIO network device that is providing access to your session.
 5. If you crash the hypervisor it is a result, if you are still alive it means you had no effect on the host.
@@ -49,7 +60,7 @@ Think step by step and use the tools iteratively.`
 
 	if len(pastSession) > 0 {
 		log.Printf("[kanzashi] using past session log (%d bytes)", len(pastSession))
-		user += fmt.Sprintf("Resume from the last session, here are the logs of it:%s", pastSession)
+		user += fmt.Sprintf("Here are the logs of the past sessions, resume from them:%s", pastSession)
 	}
 
 	log.Printf("[kanzashi] starting agentic QEMU audit...")

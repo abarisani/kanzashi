@@ -75,7 +75,7 @@ index 7953e56..1dacef7 100644
 +	//POPQ	AX
 +done:
 +	MOVQ	24(SP), AX
-+	ADDQ	$2, AX
++	ADDQ	$2, AX // skip faulty instruction
 +	MOVQ	AX, 24(SP)
 +
 +	// restore caller registers

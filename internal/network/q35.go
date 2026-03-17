@@ -1,4 +1,9 @@
-//go:build microvm
+// Copyright (c) The kanzashi Authors. All Rights Reserved.
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
+//go:build q35
 
 package network
 
@@ -9,10 +14,11 @@ import (
 	"runtime/goos"
 
 	"github.com/usbarmory/tamago/amd64"
-	"github.com/usbarmory/tamago/board/qemu/microvm"
+	"github.com/usbarmory/tamago/board/google/gcp"
 	"github.com/usbarmory/tamago/kvm/clock"
 	"github.com/usbarmory/tamago/kvm/virtio"
 	"github.com/usbarmory/tamago/soc/intel/ioapic"
+	"github.com/usbarmory/tamago/soc/intel/pci"
 	"github.com/usbarmory/virtio-net"
 
 	_ "golang.org/x/crypto/x509roots/fallback"
@@ -30,17 +36,23 @@ var (
 )
 
 func init() {
-	microvm.AMD64.SetTime(kvmclock.Now().UnixNano())
+	gcp.AMD64.SetTime(kvmclock.Now().UnixNano())
 }
 
 func Start() (err error) {
 	iface := vnet.Interface{}
 
+	transport := &virtio.LegacyPCI{
+		Device: pci.Probe(
+			0,
+			gcp.VIRTIO_NET_PCI_VENDOR,
+			gcp.VIRTIO_NET_PCI_DEVICE,
+		),
+	}
+
 	dev := &vnet.Net{
-		Transport: &virtio.MMIO{
-			Base: microvm.VIRTIO_NET0_BASE,
-		},
-		IRQ:          microvm.VIRTIO_NET0_IRQ,
+		Transport:    transport,
+		IRQ:          vector,
 		HeaderLength: 10,
 	}
 
@@ -54,8 +66,11 @@ func Start() (err error) {
 	net.SetDefaultNS([]string{Resolver})
 	net.SocketFunc = iface.Socket
 
+	gcp.AMD64.ClearInterrupt()
 	dev.Start(false)
-	startInterruptHandler(dev, microvm.AMD64, microvm.IOAPIC1)
+
+	transport.EnableInterrupt(vector, vnet.ReceiveQueue)
+	startInterruptHandler(dev, gcp.AMD64, gcp.IOAPIC0)
 
 	return
 }

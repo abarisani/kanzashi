@@ -1,3 +1,8 @@
+// Copyright (c) The kanzashi Authors. All Rights Reserved.
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
 package tool
 
 import (
@@ -5,7 +10,7 @@ import (
 
 	"github.com/usbarmory/tamago/amd64"
 
-	"github.com/usbarmory/kanzashi/reg"
+	"github.com/usbarmory/kanzashi/internal/reg"
 )
 
 var fault = -1

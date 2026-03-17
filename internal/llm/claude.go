@@ -1,3 +1,8 @@
+// Copyright (c) The kanzashi Authors. All Rights Reserved.
+//
+// Use of this source code is governed by the license
+// that can be found in the LICENSE file.
+
 //go:build claude
 
 package llm
@@ -11,7 +16,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 
-	"github.com/usbarmory/kanzashi/tool"
+	"github.com/usbarmory/kanzashi/internal/tool"
 )
 
 var ClaudeAPIKey string
