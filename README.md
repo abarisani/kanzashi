@@ -69,7 +69,6 @@ help                             # this help
 stack                            # goroutine stack trace (current)
 stackall                         # goroutine stack trace (all)
 
-
 [kanzashi] starting agentic QEMU audit...
 [kanzashi] initializing claude agent (claude-opus-4-6)
 
