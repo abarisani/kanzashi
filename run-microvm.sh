@@ -11,4 +11,4 @@ qemu-system-x86_64 \
   -enable-kvm -cpu host,invtsc=on,kvmclock=on -no-reboot \
   -m 4G -nographic -monitor none -serial stdio \
   -device virtio-net-device,netdev=net0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
-  -kernel main
+  -kernel main -d guest_errors,unimp,int,invalid_mem,pcall
