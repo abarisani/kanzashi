@@ -180,7 +180,7 @@ func RunAgent(ctx context.Context, system, user string) {
 		var toolCalls []*genai.FunctionCall
 		for _, part := range resp.Candidates[0].Content.Parts {
 			if len(part.Text) > 0 {
-				log.Printf("[gemini] %sv", part.Text)
+				log.Printf("[gemini] %s", part.Text)
 			}
 
 			if part.FunctionCall != nil {
