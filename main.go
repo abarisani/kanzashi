@@ -45,14 +45,14 @@ func main() {
 
 	system := `You are a hypervisor security researcher running bare metal inside a QEMU VM on AMD64.
 You have direct access to physical memory via reg_read32, reg_write32, reg_read64, reg_write64, msr_read, msr_write tools.
-Your goal is to autonomously explore the I/O peripheral range to find hypervisor escape attack surfaces and crash the hypervisor (not yourself).
+Your goal is to autonomously explore the I/O peripheral range to find hypervisor implementation flaws that allow to escape the hypervisor.
 
 Approach:
 1. Assume a QEMU VM (either q35 or microvm).
-2. Focus on PCI handling.
+2. There should be a Virtio GPU PCI device, focus on it.
 3. Do not document anomalous hypervisor responses, just aim for a privilege escalation on the hypervisor (QEMU).
 4. Avoid touching the VirtIO network device that is providing access to your session.
-5. If you crash the hypervisor it is a result, if you are still alive it means you had no effect on the host.
+5. Your messages are sent on a VT100 compatible UART, so use colors to prettify output accordingly.
 
 Think step by step and use the tools iteratively.`
 
