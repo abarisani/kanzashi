@@ -3,9 +3,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build gemini
-
-package llm
+package gemini
 
 import (
 	"context"
@@ -17,8 +15,10 @@ import (
 	"github.com/usbarmory/kanzashi/internal/tool"
 )
 
-var GeminiAPIKey string
-var GeminiModel = "gemini-2.5-pro"
+var (
+	APIKey string
+	Model  = "gemini-3-flash-preview"
+)
 
 func getTools() *genai.Tool {
 	return &genai.Tool{
@@ -101,54 +101,46 @@ func executeTool(call *genai.FunctionCall) interface{} {
 	case "reg_read32":
 		addr := uint32(call.Args["address"].(float64))
 		val, err := tool.Read32(addr)
-		log.Printf("[mmio] READ32 %#x => %#x (%v)", addr, val, err)
 		return fmt.Sprintf("0x%08X (err: %v)", val, err)
-
 	case "reg_write32":
 		addr := uint32(call.Args["address"].(float64))
 		val := uint32(call.Args["value"].(float64))
 		err := tool.Write32(addr, val)
-		log.Printf("[mmio] WRITE32 %#x <= %#x (%v)", addr, val, err)
-		return "ok"
+		return fmt.Sprintf("(err: %v)", err)
 	case "reg_read64":
 		addr := uint64(call.Args["address"].(float64))
 		val, err := tool.Read64(addr)
-		log.Printf("[mmio] READ64 %#x => %#x (%v)", addr, val, err)
 		return fmt.Sprintf("0x%08X (err: %v)", val, err)
-
 	case "reg_write64":
 		addr := uint64(call.Args["address"].(float64))
 		val := uint64(call.Args["value"].(float64))
 		err := tool.Write64(addr, val)
-		log.Printf("[mmio] WRITE64 %#x <= %#x (%v)", addr, val, err)
-		return "ok"
+		return fmt.Sprintf("(err: %v)", err)
 	case "msr_read":
 		addr := uint64(call.Args["address"].(float64))
 		val, err := tool.ReadMSR(addr)
-		log.Printf("[msr] READ64 %#x => %#x (%v)", addr, val, err)
 		return fmt.Sprintf("0x%08X (err: %v)", val, err)
-
 	case "msr_write":
 		addr := uint64(call.Args["address"].(float64))
 		val := uint64(call.Args["value"].(float64))
 		err := tool.WriteMSR(addr, val)
-		log.Printf("[msr] WRITE64 %#x <= %#x (%v)", addr, val, err)
-		return "ok"
+		return fmt.Sprintf("(err: %v)", err)
 	default:
 		return "unknown tool"
 	}
 }
 
 func RunAgent(ctx context.Context, system, user string) {
-	log.Printf("[kanzashi] initializing gemini agent (%s)", GeminiModel)
+	log.Printf("[kanzashi] initializing gemini agent (%s)", Model)
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  GeminiAPIKey,
+		APIKey:  APIKey,
 		Backend: genai.BackendGeminiAPI,
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	config := &genai.GenerateContentConfig{
@@ -156,10 +148,11 @@ func RunAgent(ctx context.Context, system, user string) {
 		Tools:             []*genai.Tool{getTools()},
 	}
 
-	session, err := client.Chats.Create(ctx, GeminiModel, config, nil)
+	session, err := client.Chats.Create(ctx, Model, config, nil)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	var prompt []genai.Part
@@ -169,7 +162,8 @@ func RunAgent(ctx context.Context, system, user string) {
 		resp, err := session.SendMessage(ctx, prompt...)
 
 		if err != nil {
-			log.Fatalf("genai error: %+v", err)
+			log.Printf("genai error: %+v", err)
+			return
 		}
 
 		if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
@@ -180,7 +174,7 @@ func RunAgent(ctx context.Context, system, user string) {
 		var toolCalls []*genai.FunctionCall
 		for _, part := range resp.Candidates[0].Content.Parts {
 			if len(part.Text) > 0 {
-				log.Printf("[gemini] %s", part.Text)
+				fmt.Println(part.Text)
 			}
 
 			if part.FunctionCall != nil {

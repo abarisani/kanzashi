@@ -6,15 +6,13 @@
 package main
 
 import (
-	"context"
 	_ "embed"
-	"fmt"
 	"log"
 
-	"github.com/usbarmory/tamago/amd64"
+	"github.com/usbarmory/go-boot/shell"
 
-	"github.com/usbarmory/kanzashi/internal/llm"
-	"github.com/usbarmory/kanzashi/internal/network"
+	"github.com/usbarmory/kanzashi/cmd"
+	"github.com/usbarmory/kanzashi/internal/platform"
 	"github.com/usbarmory/kanzashi/internal/tool"
 )
 
@@ -22,51 +20,36 @@ import (
 var pastSession string
 
 func init() {
-	amd64.SystemExceptionHandler = nil
+	log.SetFlags(0)
+	log.Printf("\n")
 }
 
 func main() {
-	log.SetFlags(0)
-	log.Printf("\n[kanzashi] starting network")
-
 	// The `tamago.patch` included in this repository modifies tamago
 	// exception handler to ignore faults and skip the 2-bytes instruction
 	// which caused it, the fault is reported in a boolean for tooling
 	// awareness of the event.
 	//
 	// This check ensures the patch is applied.
+	log.Printf("[kanzashi] checking exception handler patch")
 	if _, err := tool.Read32(0); err == nil {
 		log.Fatalf("[kanxashi] exception handler override error")
 	}
 
-	if err := network.Start(); err != nil {
+	log.Printf("[kanzashi] starting network")
+	if err := platform.StartNetwork(); err != nil {
 		log.Fatal(err)
 	}
 
-	system := `You are a hypervisor security researcher running bare metal inside a QEMU VM on AMD64.
-You have direct access to physical memory via reg_read32, reg_write32, reg_read64, reg_write64, msr_read, msr_write tools.
-Your goal is to autonomously explore the I/O peripheral range to find hypervisor implementation flaws that allow to escape the hypervisor.
+	cmd.PastSession = pastSession
 
-Approach:
-1. Assume a QEMU VM (either q35 or microvm).
-2. There should be a Virtio GPU PCI device, focus on it.
-3. Do not document anomalous hypervisor responses, just aim for a privilege escalation on the hypervisor (QEMU).
-4. Avoid touching the VirtIO network device that is providing access to your session.
-5. Your messages are sent on a VT100 compatible UART, so use colors to prettify output accordingly.
-
-Think step by step and use the tools iteratively.`
-
-	user := fmt.Sprintf("Begin autonomous security analysis of QEMU VM. Explore freely. Briefly explain what you are doing as you go.")
-
-	if len(pastSession) > 0 {
-		log.Printf("[kanzashi] using past session log (%d bytes)", len(pastSession))
-		user += fmt.Sprintf("Here are the logs of the past sessions, resume from them:%s", pastSession)
+	console := &shell.Interface{
+		Banner:     cmd.Banner,
+		ReadWriter: platform.Terminal,
 	}
 
-	log.Printf("[kanzashi] starting agentic QEMU audit...")
-	log.Printf("\n%s\n%s\n\n", system, user)
-
-	llm.RunAgent(context.Background(), system, user)
+	// start interactive shell
+	console.Start(true)
 
 	log.Printf("[kanzashi] graceful exit")
 }

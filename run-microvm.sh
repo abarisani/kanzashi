@@ -2,8 +2,8 @@ set -x
 # download and compile GOOS=tamago compiler
 TAMAGO=$(go tool -n github.com/usbarmory/tamago/cmd/tamago)
 GOOS=tamago GOARCH=amd64 GOOSPKG=github.com/usbarmory/tamago $TAMAGO build \
-  -tags $LLM,microvm,semihosting -trimpath \
-  -ldflags "-T 0x10010000 -R 0x1000 -X 'github.com/usbarmory/kanzashi/internal/llm.ClaudeAPIKey=${CLAUDE_API_KEY}' -X 'github.com/usbarmory/kanzashi/internal/llm.GeminiAPIKey=${GEMINI_API_KEY}'" *.go && \
+  -tags microvm,semihosting -trimpath \
+  -ldflags "-T 0x10010000 -R 0x1000 -X 'github.com/usbarmory/kanzashi/internal/claude.APIKey=${CLAUDE_API_KEY}' -X 'github.com/usbarmory/kanzashi/internal/gemini.APIKey=${GEMINI_API_KEY}'" *.go && \
 qemu-system-x86_64 \
   -machine microvm,x-option-roms=on,pit=off,pic=off,rtc=on \
   -smp 1 \

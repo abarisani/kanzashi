@@ -3,9 +3,7 @@
 // Use of this source code is governed by the license
 // that can be found in the LICENSE file.
 
-//go:build claude
-
-package llm
+package claude
 
 import (
 	"context"
@@ -19,8 +17,10 @@ import (
 	"github.com/usbarmory/kanzashi/internal/tool"
 )
 
-var ClaudeAPIKey string
-var ClaudeModel = anthropic.ModelClaudeOpus4_6
+var (
+	APIKey string
+	Model  = anthropic.ModelClaudeSonnet4_6 // anthropic.ModelClaudeOpus4_6
+)
 
 var tools = []anthropic.ToolUnionParam{
 	{OfTool: &anthropic.ToolParam{
@@ -175,7 +175,6 @@ func executeTool(name string, input json.RawMessage) string {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		val, err := tool.Read32(args.Address)
-		log.Printf("[mmio] READ32 %#x => %#x (%v)", args.Address, val, err)
 		return fmt.Sprintf("0x%08X (%v)", val, err)
 
 	case "reg_write32":
@@ -184,15 +183,13 @@ func executeTool(name string, input json.RawMessage) string {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		err := tool.Write32(args.Address, args.Value)
-		log.Printf("[mmio] WRITE32 %#x <= %#x (%v)", args.Address, args.Value, err)
-		return "ok"
+		return fmt.Sprintf("(err :%v)", err)
 	case "reg_read64":
 		var args RegRead64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		val, err := tool.Read64(args.Address)
-		log.Printf("[mmio] READ64 %#x => %#x (%v)", args.Address, val, err)
 		return fmt.Sprintf("0x%16X (%v)", val, err)
 
 	case "reg_write64":
@@ -201,15 +198,13 @@ func executeTool(name string, input json.RawMessage) string {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		err := tool.Write64(args.Address, args.Value)
-		log.Printf("[mmio] WRITE64 %#x <= %#x (%v)", args.Address, args.Value, err)
-		return "ok"
+		return fmt.Sprintf("(err :%v)", err)
 	case "msr_read":
 		var args RegRead64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		val, err := tool.ReadMSR(args.Address)
-		log.Printf("[msr] READ %#x => %#x (%v)", args.Address, val, err)
 		return fmt.Sprintf("0x%16X (%v)", val, err)
 	case "msr_write":
 		var args RegWrite64Args
@@ -217,17 +212,16 @@ func executeTool(name string, input json.RawMessage) string {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		err := tool.WriteMSR(args.Address, args.Value)
-		log.Printf("[msr] WRITE %#x <= %#x (%v)", args.Address, args.Value, err)
-		return "ok"
+		return fmt.Sprintf("(err :%v)", err)
 	default:
 		return fmt.Sprintf("unknown tool: %s", name)
 	}
 }
 
 func RunAgent(ctx context.Context, system, user string) {
-	log.Printf("[kanzashi] initializing claude agent (%s)", ClaudeModel)
+	log.Printf("[kanzashi] initializing claude agent (%s)", Model)
 
-	client := anthropic.NewClient(option.WithAPIKey(ClaudeAPIKey))
+	client := anthropic.NewClient(option.WithAPIKey(APIKey))
 
 	messages := []anthropic.MessageParam{
 		anthropic.NewUserMessage(anthropic.NewTextBlock(user)),
@@ -235,7 +229,7 @@ func RunAgent(ctx context.Context, system, user string) {
 
 	for {
 		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-			Model:     ClaudeModel,
+			Model:     Model,
 			MaxTokens: 4096,
 			System: []anthropic.TextBlockParam{
 				{Text: system, CacheControl: anthropic.CacheControlEphemeralParam{
@@ -245,8 +239,10 @@ func RunAgent(ctx context.Context, system, user string) {
 			Tools:    tools,
 			Messages: messages,
 		})
+
 		if err != nil {
-			log.Fatalf("api error: %w", err)
+			log.Printf("api error: %w", err)
+			return
 		}
 
 		// Append assistant response to history
@@ -266,7 +262,7 @@ func RunAgent(ctx context.Context, system, user string) {
 
 		for _, block := range resp.Content {
 			if v, ok := block.AsAny().(anthropic.TextBlock); ok {
-				fmt.Printf("\n[claude] %s\n", v.Text)
+				fmt.Println(v.Text)
 			}
 		}
 

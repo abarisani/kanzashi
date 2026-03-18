@@ -23,31 +23,49 @@ func checkFault() (err error) {
 }
 
 func Read32(addr uint32) (val uint32, err error) {
+	fmt.Printf("[kanzashi]  read32 %#x", addr)
 	val = reg.Read(addr)
-	return val, checkFault()
+	err = checkFault()
+	fmt.Printf(" => %#x (%v)\n", val, err)
+	return
 }
 
 func Write32(addr uint32, val uint32) (err error) {
+	fmt.Printf("[kanzashi] write32 %#x <= %#x", addr, val)
 	reg.Write32(addr, val)
-	return checkFault()
+	err = checkFault()
+	fmt.Printf(" (%v)\n", err)
+	return
 }
 
 func Read64(addr uint64) (val uint64, err error) {
+	fmt.Printf("[kanzashi]  read64 %#x", addr)
 	val = reg.Read64(addr)
-	return val, checkFault()
+	err = checkFault()
+	fmt.Printf(" => %#x (%v)\n", val, err)
+	return
 }
 
 func Write64(addr uint64, val uint64) (err error) {
+	fmt.Printf("[kanzashi] write64 %#x <= %#x", addr, val)
 	reg.Write64(addr, val)
-	return checkFault()
+	err = checkFault()
+	fmt.Printf(" (%v)\n", err)
+	return
 }
 
 func ReadMSR(addr uint64) (val uint64, err error) {
+	fmt.Printf("[kanzashi]   rdmsr %#x", addr)
 	val = reg.ReadMSR(addr)
-	return val, checkFault()
+	err = checkFault()
+	fmt.Printf(" => %#x (%v)\n", val, err)
+	return
 }
 
 func WriteMSR(addr uint64, val uint64) (err error) {
+	fmt.Printf("[kanzashi]   wrmsr %#x <= %#x", addr, val)
 	reg.WriteMSR(addr, val)
+	err = checkFault()
+	fmt.Printf(" (%v)\n", err)
 	return checkFault()
 }
