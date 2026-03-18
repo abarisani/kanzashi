@@ -55,7 +55,7 @@ func Write64(addr uint64, val uint64) (err error) {
 }
 
 func ReadMSR(addr uint64) (val uint64, err error) {
-	fmt.Printf("[kanzashi]   rdmsr %#16x", addr)
+	fmt.Printf("[kanzashi]   rdmsr %#016x", addr)
 	val = reg.ReadMSR(addr)
 	err = checkFault()
 	fmt.Printf(" => %#016x (%v)\n", val, err)
