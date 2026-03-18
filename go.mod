@@ -4,8 +4,6 @@ go 1.26.1
 
 tool github.com/usbarmory/tamago/cmd/tamago
 
-replace github.com/usbarmory/tamago => /mnt/git/public/tamago
-
 require (
 	github.com/anthropics/anthropic-sdk-go v1.26.0
 	github.com/google/generative-ai-go v0.20.1
