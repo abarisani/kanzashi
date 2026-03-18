@@ -12,8 +12,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 
 	"github.com/usbarmory/kanzashi/internal/tool"
 )
@@ -97,7 +96,7 @@ func getTools() *genai.Tool {
 	}
 }
 
-func executeTool(call genai.FunctionCall) interface{} {
+func executeTool(call *genai.FunctionCall) interface{} {
 	switch call.Name {
 	case "reg_read32":
 		addr := uint32(call.Args["address"].(float64))
@@ -143,48 +142,61 @@ func executeTool(call genai.FunctionCall) interface{} {
 func RunAgent(ctx context.Context, system, user string) {
 	log.Printf("[kanzashi] initializing gemini agent (%s)", GeminiModel)
 
-	client, err := genai.NewClient(ctx, option.WithAPIKey(GeminiAPIKey))
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  GeminiAPIKey,
+		Backend: genai.BackendGeminiAPI,
+	})
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
 
-	model := client.GenerativeModel(GeminiModel)
-	model.SystemInstruction = genai.NewUserContent(genai.Text(system))
-	model.Tools = []*genai.Tool{getTools()}
+	config := &genai.GenerateContentConfig{
+		SystemInstruction: genai.NewContentFromText(system, genai.RoleUser),
+		Tools:             []*genai.Tool{getTools()},
+	}
 
-	session := model.StartChat()
+	session, err := client.Chats.Create(ctx, GeminiModel, config, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	var prompt []genai.Part
-	prompt = append(prompt, genai.Text(user))
+	prompt = append(prompt, genai.Part{Text: user})
 
 	for {
 		resp, err := session.SendMessage(ctx, prompt...)
+
 		if err != nil {
 			log.Fatalf("genai error: %+v", err)
 		}
 
-		var toolCalls []genai.FunctionCall
-		for _, part := range resp.Candidates[0].Content.Parts {
-			if txt, ok := part.(genai.Text); ok {
-				fmt.Printf("\n[gemini] %s\n", txt)
-			}
-			if call, ok := part.(genai.FunctionCall); ok {
-				toolCalls = append(toolCalls, call)
-			}
+		if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
+			log.Printf("[gemini] empty response (finish reason: %v)", resp.Candidates[0].FinishReason)
+			break
 		}
 
-		if len(toolCalls) == 0 {
-			break
+		var toolCalls []*genai.FunctionCall
+		for _, part := range resp.Candidates[0].Content.Parts {
+			if len(part.Text) > 0 {
+				log.Printf("[gemini] %sv", part.Text)
+			}
+
+			if part.FunctionCall != nil {
+				toolCalls = append(toolCalls, part.FunctionCall)
+			}
 		}
 
 		prompt = nil
 
 		for _, call := range toolCalls {
 			result := executeTool(call)
-			prompt = append(prompt, genai.FunctionResponse{
-				Name:     call.Name,
-				Response: map[string]interface{}{"result": result},
+			prompt = append(prompt, genai.Part{
+				FunctionResponse: &genai.FunctionResponse{
+					Name:     call.Name,
+					Response: map[string]interface{}{"result": result},
+				},
 			})
 		}
 	}
