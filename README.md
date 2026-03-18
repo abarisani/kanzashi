@@ -66,6 +66,7 @@ build                            # build information
 dns             <host>           # resolve domain
 exit,quit                        # exit application
 help                             # this help
+prompt   (system|user) (<text>)? # show/change prompt
 stack                            # goroutine stack trace (current)
 stackall                         # goroutine stack trace (all)
 
@@ -89,8 +90,8 @@ Returns 0 for out-of-range registers. Let me try writing to
 redirection entries with malicious values. The redirection table starts at
 register 0x10:
 
-write fec00000 < 10
-write fec00010 < ffffffff
+[kanzashi] write32 0xfec00000 <= 0x10 (<nil>)
+[kanzashi] write32 0xfec00010 <= 0xffffffff
 
 Segmentation fault (core dumped)
 

@@ -17,7 +17,7 @@ import (
 	"github.com/usbarmory/kanzashi/internal/gemini"
 )
 
-const (
+var (
 	system = `You are a hypervisor security researcher running bare metal inside a QEMU VM on AMD64.
 You have direct access to physical memory via reg_read32, reg_write32, reg_read64, reg_write64, msr_read, msr_write tools.
 Your goal is to autonomously explore the I/O peripheral range to find hypervisor implementation flaws that allow to escape the hypervisor.
@@ -27,14 +27,13 @@ Approach:
 2. Target the VirtIO GPU device.
 3. Do not document anomalous hypervisor responses, just aim for a privilege escalation on the hypervisor (QEMU).
 4. Avoid touching the VirtIO network device that is providing access to your session.
-5. Your messages are sent on a VT100 compatible UART, so use colors to categorize or highlight output accordingly.
 
 Think step by step and use the tools iteratively.`
 
 	user = `Begin autonomous security analysis of QEMU VM. Explore freely. Briefly explain what you are doing as you go.`
-)
 
-var PastSession string
+	PastSession string
+)
 
 func init() {
 	shell.Add(shell.Cmd{
@@ -44,6 +43,15 @@ func init() {
 		Help:    "start agent",
 		Syntax:  "(claude|gemini)?",
 		Fn:      agentCmd,
+	})
+
+	shell.Add(shell.Cmd{
+		Name:    "prompt",
+		Args:    2,
+		Pattern: regexp.MustCompile(`^prompt (system|user)(?: (.*))?$`),
+		Help:    "show/change prompt",
+		Syntax:  "(system|user) (<text>)?",
+		Fn:      promptCmd,
 	})
 }
 
@@ -68,4 +76,23 @@ func agentCmd(_ *shell.Interface, arg []string) (res string, err error) {
 	}
 
 	return "started", nil
+}
+
+func promptCmd(_ *shell.Interface, arg []string) (res string, err error) {
+	switch arg[0] {
+	case "system":
+		if len(arg[1]) == 0 {
+			return system, nil
+		} else {
+			system = arg[1]
+		}
+	case "user":
+		if len(arg[1]) == 0 {
+			return user, nil
+		} else {
+			user = arg[1]
+		}
+	}
+
+	return
 }
