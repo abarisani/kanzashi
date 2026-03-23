@@ -273,7 +273,6 @@ func RunAgent(ctx context.Context, system, user string) {
 		for _, block := range resp.Content {
 			if v, ok := block.AsAny().(anthropic.ToolUseBlock); ok {
 				result := executeTool(v.Name, v.Input)
-				log.Printf("[tool] %s(%s) => %s", v.Name, string(v.Input), result)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, result, false))
 			}
 		}
