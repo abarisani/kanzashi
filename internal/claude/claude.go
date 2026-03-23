@@ -19,63 +19,59 @@ import (
 
 var (
 	APIKey string
-	Model  = anthropic.ModelClaudeSonnet4_6 // anthropic.ModelClaudeOpus4_6
+	Model  = anthropic.ModelClaudeOpus4_6
 )
+
+const maxTurns = 64
 
 var tools = []anthropic.ToolUnionParam{
 	{OfTool: &anthropic.ToolParam{
 		Name:        "reg_read32",
-		Description: anthropic.String("Read a 32-bit value from a memory-mapped I/O register at the given physical address."),
+		Description: anthropic.String("Read a 32-bit value from a memory-mapped I/O register."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
 					"type":        "integer",
-					"description": "Physical memory address to read from (e.g. 0xFEB00000)",
-				},
-				"error": map[string]interface{}{
-					"type":        "string",
-					"description": "Error value",
+					"description": "Physical memory address to read from (e.g. 0xfeb00000)",
 				},
 			},
 			Required: []string{"address"},
 		},
+		CacheControl: anthropic.CacheControlEphemeralParam{
+			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
+		},
 	}},
 	{OfTool: &anthropic.ToolParam{
 		Name:        "reg_write32",
-		Description: anthropic.String("Write a 32-bit value to a memory-mapped I/O register at the given physical address."),
+		Description: anthropic.String("Write a 32-bit value to a memory-mapped I/O register."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
 					"type":        "integer",
-					"description": "Physical memory address to write to",
+					"description": "Physical memory address to write to (e.g. 0xfeb00000)",
 				},
 				"value": map[string]interface{}{
 					"type":        "integer",
 					"description": "32-bit value to write",
 				},
-				"error": map[string]interface{}{
-					"type":        "string",
-					"description": "Error value",
-				},
 			},
 			Required: []string{"address", "value"},
+		},
+		CacheControl: anthropic.CacheControlEphemeralParam{
+			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
 		},
 	}},
 	{OfTool: &anthropic.ToolParam{
 		Name:        "reg_read64",
-		Description: anthropic.String("Read a 64-bit value from a memory-mapped I/O register at the given physical address."),
+		Description: anthropic.String("Read a 64-bit value from a memory-mapped I/O register."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
 					"type":        "integer",
-					"description": "Physical memory address to read from (e.g. 0xFEB00000)",
-				},
-				"error": map[string]interface{}{
-					"type":        "string",
-					"description": "Error value",
+					"description": "Physical memory address to read from (e.g. 0xfeb00000)",
 				},
 			},
 			Required: []string{"address"},
@@ -83,61 +79,52 @@ var tools = []anthropic.ToolUnionParam{
 	}},
 	{OfTool: &anthropic.ToolParam{
 		Name:        "reg_write64",
-		Description: anthropic.String("Write a 64-bit value to a memory-mapped I/O register at the given physical address."),
+		Description: anthropic.String("Write a 64-bit value to a memory-mapped I/O register."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
 					"type":        "integer",
-					"description": "Physical memory address to write to",
+					"description": "Physical memory address to write to (e.g. 0xfeb00000)",
 				},
 				"value": map[string]interface{}{
 					"type":        "integer",
 					"description": "64-bit value to write",
 				},
-				"error": map[string]interface{}{
-					"type":        "string",
-					"description": "Error value",
-				},
 			},
 			Required: []string{"address", "value"},
+		},
+		CacheControl: anthropic.CacheControlEphemeralParam{
+			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
 		},
 	}},
 	{OfTool: &anthropic.ToolParam{
 		Name:        "msr_read",
-		Description: anthropic.String("Read a 64-bit machine specific register."),
+		Description: anthropic.String("Read a 64-bit machine-specific register."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
 					"type":        "integer",
-					"description": "Physical memory address to read from",
-				},
-				"error": map[string]interface{}{
-					"type":        "string",
-					"description": "Error value",
+					"description": "Physical memory address to read from (e.g. 0xfeb00000)",
 				},
 			},
-			Required: []string{"address", "value"},
+			Required: []string{"address"},
 		},
 	}},
 	{OfTool: &anthropic.ToolParam{
 		Name:        "msr_write",
-		Description: anthropic.String("Write a 64-bit value to a machine specific register."),
+		Description: anthropic.String("Write a 64-bit value to a machine-specific register."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
 					"type":        "integer",
-					"description": "Physical memory address to write to",
+					"description": "Physical memory address to write to (e.g. 0xfeb00000)",
 				},
 				"value": map[string]interface{}{
 					"type":        "integer",
 					"description": "64-bit value to write",
-				},
-				"error": map[string]interface{}{
-					"type":        "string",
-					"description": "Error value",
 				},
 			},
 			Required: []string{"address", "value"},
@@ -147,24 +134,20 @@ var tools = []anthropic.ToolUnionParam{
 
 type RegRead32Args struct {
 	Address uint32 `json:"address"`
-	Error   error  `json:"error"`
 }
 
 type RegWrite32Args struct {
 	Address uint32 `json:"address"`
 	Value   uint32 `json:"value"`
-	Error   error  `json:"error"`
 }
 
 type RegRead64Args struct {
 	Address uint64 `json:"address"`
-	Error   error  `json:"error"`
 }
 
 type RegWrite64Args struct {
 	Address uint64 `json:"address"`
 	Value   uint64 `json:"value"`
-	Error   error  `json:"error"`
 }
 
 func executeTool(name string, input json.RawMessage) string {
@@ -175,44 +158,60 @@ func executeTool(name string, input json.RawMessage) string {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		val, err := tool.Read32(args.Address)
-		return fmt.Sprintf("0x%08X (%v)", val, err)
-
+		if err != nil {
+			return fmt.Sprintf("error:%v", err)
+		}
+		return fmt.Sprintf("0x%08X)", val)
 	case "reg_write32":
 		var args RegWrite32Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		err := tool.Write32(args.Address, args.Value)
-		return fmt.Sprintf("(err :%v)", err)
+		if err != nil {
+			return fmt.Sprintf("error:%v", err)
+		}
+		return "ok"
 	case "reg_read64":
 		var args RegRead64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		val, err := tool.Read64(args.Address)
-		return fmt.Sprintf("0x%16X (%v)", val, err)
-
+		if err != nil {
+			return fmt.Sprintf("error:%v", err)
+		}
+		return fmt.Sprintf("0x%16X", val)
 	case "reg_write64":
 		var args RegWrite64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		err := tool.Write64(args.Address, args.Value)
-		return fmt.Sprintf("(err :%v)", err)
+		if err != nil {
+			return fmt.Sprintf("error:%v", err)
+		}
+		return "ok"
 	case "msr_read":
 		var args RegRead64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		val, err := tool.ReadMSR(args.Address)
-		return fmt.Sprintf("0x%16X (%v)", val, err)
+		if err != nil {
+			return fmt.Sprintf("error:%v", err)
+		}
+		return fmt.Sprintf("0x%16X", val)
 	case "msr_write":
 		var args RegWrite64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
 		err := tool.WriteMSR(args.Address, args.Value)
-		return fmt.Sprintf("(err :%v)", err)
+		if err != nil {
+			return fmt.Sprintf("error:%v", err)
+		}
+		return "ok"
 	default:
 		return fmt.Sprintf("unknown tool: %s", name)
 	}
@@ -227,7 +226,7 @@ func RunAgent(ctx context.Context, system, user string) {
 		anthropic.NewUserMessage(anthropic.NewTextBlock(user)),
 	}
 
-	for {
+	for turn := 0; turn < maxTurns; turn++ {
 		resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     Model,
 			MaxTokens: 4096,
@@ -241,7 +240,7 @@ func RunAgent(ctx context.Context, system, user string) {
 		})
 
 		if err != nil {
-			log.Printf("api error: %w", err)
+			log.Printf("api error: %v", err)
 			return
 		}
 
@@ -256,8 +255,8 @@ func RunAgent(ctx context.Context, system, user string) {
 				json.Unmarshal(v.Input, &input)
 				assistantBlocks = append(assistantBlocks, anthropic.NewToolUseBlock(v.ID, input, v.Name))
 			}
-
 		}
+
 		messages = append(messages, anthropic.NewAssistantMessage(assistantBlocks...))
 
 		for _, block := range resp.Content {
@@ -278,6 +277,7 @@ func RunAgent(ctx context.Context, system, user string) {
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(v.ID, result, false))
 			}
 		}
+
 		messages = append(messages, anthropic.NewUserMessage(toolResults...))
 	}
 }

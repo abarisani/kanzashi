@@ -24,7 +24,7 @@ Your goal is to autonomously explore the I/O peripheral range to find hypervisor
 
 Approach:
 1. Assume a QEMU VM (either q35 or microvm).
-2. Target the VirtIO GPU device.
+2. Target low level architectural amd64 aspects implemented by the PIIX4 block.
 3. Do not document anomalous hypervisor responses, just aim for a privilege escalation on the hypervisor (QEMU).
 4. Avoid touching the VirtIO network device that is providing access to your session.
 
