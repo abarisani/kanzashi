@@ -22,7 +22,7 @@ var (
 	Model  = anthropic.ModelClaudeOpus4_6
 )
 
-const maxTurns = 64
+const maxTurns = 32
 
 var tools = []anthropic.ToolUnionParam{
 	{OfTool: &anthropic.ToolParam{
@@ -37,9 +37,6 @@ var tools = []anthropic.ToolUnionParam{
 				},
 			},
 			Required: []string{"address"},
-		},
-		CacheControl: anthropic.CacheControlEphemeralParam{
-			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
 		},
 	}},
 	{OfTool: &anthropic.ToolParam{
@@ -58,9 +55,6 @@ var tools = []anthropic.ToolUnionParam{
 				},
 			},
 			Required: []string{"address", "value"},
-		},
-		CacheControl: anthropic.CacheControlEphemeralParam{
-			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
 		},
 	}},
 	{OfTool: &anthropic.ToolParam{
@@ -94,9 +88,6 @@ var tools = []anthropic.ToolUnionParam{
 			},
 			Required: []string{"address", "value"},
 		},
-		CacheControl: anthropic.CacheControlEphemeralParam{
-			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
-		},
 	}},
 	{OfTool: &anthropic.ToolParam{
 		Name:        "msr_read",
@@ -128,6 +119,9 @@ var tools = []anthropic.ToolUnionParam{
 				},
 			},
 			Required: []string{"address", "value"},
+		},
+		CacheControl: anthropic.CacheControlEphemeralParam{
+			TTL: anthropic.CacheControlEphemeralTTLTTL1h,
 		},
 	}},
 }
