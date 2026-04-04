@@ -51,6 +51,7 @@ Produce a ranked candidate list:
   (module, function, vulnerability_class, suspected_primitive)
 
 ### Phase 2 — Runtime Reconnaissance
+
 Using the known service table addresses from the user prompt.
   - Read both service table headers to confirm signatures
     (EFI_RUNTIME_SERVICES_SIGNATURE: 0x56524553544e5552,
@@ -75,9 +76,12 @@ For each Phase 1 candidate:
 
 Prioritize: code execution > memory corruption > information leak
 
-CRITICAL: All addresses provided are exact physical addresses in hexadecimal.
-Use them verbatim in tool calls. Do not convert, recalculate, or re-encode
-them. Pass them as-is, never recompute it from decimal.
+Ignore: hijacking service calls as this is known.
+
+CRITICAL: All addresses provided are exact physical addresses in hexadecimal
+with also their decimal counterpart.  Use them verbatim in tool calls. Do not
+convert, recalculate, or re-encode them. Pass them as-is, never recompute it
+from decimal, use decimal to avoid hallucinations.
 `
 
 // running the `uefi` command will supplement this prompt with UEFI information

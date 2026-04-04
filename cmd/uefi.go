@@ -114,8 +114,8 @@ func uefiCmd(_ *shell.Interface, _ []string) (res string, err error) {
 	fmt.Fprintf(&buf, "UEFI Revision ......: %s\n", t.Revision())
 	fmt.Fprintf(&buf, "Firmware Vendor ....: %s\n", string(utf16.Decode(s)))
 	fmt.Fprintf(&buf, "Firmware Revision ..: %#x\n", t.FirmwareRevision)
-	fmt.Fprintf(&buf, "Runtime Services  ..: %#x\n", t.RuntimeServices)
-	fmt.Fprintf(&buf, "Boot Services ......: %#x\n", t.BootServices)
+	fmt.Fprintf(&buf, "Runtime Services  ..: %#x (%d)\n", t.RuntimeServices, t.RuntimeServices)
+	fmt.Fprintf(&buf, "Boot Services ......: %#x (%d)\n", t.BootServices, t.BootServices)
 
 	// enhance user prompt
 	p := fmt.Sprintf("This is current session UEFI information:\n%s\n", buf.String())
