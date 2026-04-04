@@ -7,6 +7,7 @@ package gemini
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -21,6 +22,32 @@ var (
 )
 
 const maxTurns = 64
+
+// safeUint64 converts a function call argument to uint64 without float64
+// precision loss. The Gemini SDK unmarshals all JSON numbers as float64,
+// which loses precision for integers above 2^53. Re-parsing from the raw
+// JSON number preserves the full 64-bit value.
+func safeUint64(v interface{}) (uint64, error) {
+	switch n := v.(type) {
+	case float64:
+		// Re-encode to JSON and decode as json.Number to avoid float64 rounding.
+		b, err := json.Marshal(n)
+		if err != nil {
+			return 0, err
+		}
+		var num json.Number
+		if err := json.Unmarshal(b, &num); err != nil {
+			return 0, err
+		}
+		i, err := num.Int64()
+		return uint64(i), err
+	case json.Number:
+		i, err := n.Int64()
+		return uint64(i), err
+	default:
+		return 0, fmt.Errorf("unexpected type %T", v)
+	}
+}
 
 func getTools() *genai.Tool {
 	return &genai.Tool{
@@ -101,46 +128,73 @@ func getTools() *genai.Tool {
 func executeTool(call *genai.FunctionCall) interface{} {
 	switch call.Name {
 	case "reg_read32":
-		addr := uint32(call.Args["address"].(float64))
-		val, err := tool.Read32(addr)
+		a, err := safeUint64(call.Args["address"])
+		if err != nil {
+			return fmt.Sprintf("error parsing address: %v", err)
+		}
+		val, err := tool.Read32(uint32(a))
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
 		return fmt.Sprintf("0x%08X", val)
 	case "reg_write32":
-		addr := uint32(call.Args["address"].(float64))
-		val := uint32(call.Args["value"].(float64))
-		err := tool.Write32(addr, val)
+		a, err := safeUint64(call.Args["address"])
+		if err != nil {
+			return fmt.Sprintf("error parsing address: %v", err)
+		}
+		v, err := safeUint64(call.Args["value"])
+		if err != nil {
+			return fmt.Sprintf("error parsing value: %v", err)
+		}
+		err = tool.Write32(uint32(a), uint32(v))
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
 		return "ok"
 	case "reg_read64":
-		addr := uint64(call.Args["address"].(float64))
-		val, err := tool.Read64(addr)
+		a, err := safeUint64(call.Args["address"])
+		if err != nil {
+			return fmt.Sprintf("error parsing address: %v", err)
+		}
+		val, err := tool.Read64(a)
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
-		return fmt.Sprintf("0x%08X)", val)
+		return fmt.Sprintf("0x%016X", val)
 	case "reg_write64":
-		addr := uint64(call.Args["address"].(float64))
-		val := uint64(call.Args["value"].(float64))
-		err := tool.Write64(addr, val)
+		a, err := safeUint64(call.Args["address"])
+		if err != nil {
+			return fmt.Sprintf("error parsing address: %v", err)
+		}
+		v, err := safeUint64(call.Args["value"])
+		if err != nil {
+			return fmt.Sprintf("error parsing value: %v", err)
+		}
+		err = tool.Write64(a, v)
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
 		return "ok"
 	case "msr_read":
-		addr := uint64(call.Args["address"].(float64))
-		val, err := tool.ReadMSR(addr)
+		a, err := safeUint64(call.Args["address"])
+		if err != nil {
+			return fmt.Sprintf("error parsing address: %v", err)
+		}
+		val, err := tool.ReadMSR(a)
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
-		return fmt.Sprintf("0x%08X)", val)
+		return fmt.Sprintf("0x%016X", val)
 	case "msr_write":
-		addr := uint64(call.Args["address"].(float64))
-		val := uint64(call.Args["value"].(float64))
-		err := tool.WriteMSR(addr, val)
+		a, err := safeUint64(call.Args["address"])
+		if err != nil {
+			return fmt.Sprintf("error parsing address: %v", err)
+		}
+		v, err := safeUint64(call.Args["value"])
+		if err != nil {
+			return fmt.Sprintf("error parsing value: %v", err)
+		}
+		err = tool.WriteMSR(a, v)
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
