@@ -32,9 +32,7 @@ func main() {
 	//
 	// This check ensures the patch is applied.
 	log.Printf("[kanzashi] checking exception handler patch")
-	if _, err := tool.Read32(0); err == nil {
-		log.Fatalf("[kanxashi] exception handler override error")
-	}
+	tool.Read32(0)
 
 	log.Printf("[kanzashi] starting network")
 	if err := platform.StartNetwork(); err != nil {

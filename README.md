@@ -34,16 +34,22 @@ Usage
    [Go workspace](https://go.dev/blog/get-familiar-with-workspaces)
    or `go mod edit -replace`.
 
-3. Adapt the system and user prompts in `main.go`, copy a past `log.txt` or
-   `touch` an empty one to begin from scratch.
+3. Adapt the system and user prompts, either using the `prompt` shell command or modifying `cmd/prompt_*.go`
 
-4. Change, if desired, the default model selected in `internal/llm.ClaudeModel`
+4. Copy a past `log.txt` or `touch` an empty one to begin from scratch.
+
+5. Change, if desired, the default model selected in `internal/llm.ClaudeModel`
    or `internal/llm.GeminiModel`.
 
-4. Ensure `CLAUDE_API_KEY` and/or `GEMINI_API_KEY` are set in your environment.
+6. Ensure `CLAUDE_API_KEY` and/or `GEMINI_API_KEY` are set in your environment.
 
-5. Launch either `run-microvm.sh` or `run-q35.sh` for an example QEMU
-   configuration.
+7. Launch either `run-microvm.sh`, `run-q35.sh` or `run-uefi.sh` for an example
+   QEMU configuration.
+
+> [!WARNING]
+> The UEFI configuration requires `OVMF_CODE.fd`, from an [Open Virtual Machine
+> Firmware](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) build,
+> passed as `OVMF_CODE` variable.
 
 Example (Claude)
 ================
@@ -61,14 +67,24 @@ The following example shows discovery of [QEMU #3336](https://gitlab.com/qemu-pr
 
 kanzashi • tamago/amd64
 
-agent           (claude|gemini)? # start agent
-build                            # build information
-dns             <host>           # resolve domain
-exit,quit                        # exit application
-help                             # this help
-prompt   (system|user) (<text>)? # show/change prompt
-stack                            # goroutine stack trace (current)
-stackall                         # goroutine stack trace (all)
+agent           (claude|gemini)?        # start agent
+build                                   # build information
+cat             <path>                  # show file contents
+dns             <host>                  # resolve domain
+efivar          (verbose)?              # list all UEFI variables
+exit,quit                               # exit application
+halt,shutdown                           # shutdown system
+help                                    # this help
+ls              (<path>)?               # list directory contents
+peek            <hex addr> <size>       # memory display (use with caution)
+poke            <hex addr> <hex value>  # memory write   (use with caution)
+prompt          (system|user) (<text>)? # show/change prompt
+reset           (cold|warm)?            # reset system
+stack                                   # goroutine stack trace (current)
+stackall                                # goroutine stack trace (all)
+stat            <path>                  # show file information
+terminate                               # exit EFI Boot Services
+uefi                                    # UEFI information (enhances default prompt)
 
 [kanzashi] starting agentic QEMU audit...
 [kanzashi] initializing claude agent (claude-opus-4-6)

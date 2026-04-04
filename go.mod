@@ -6,7 +6,6 @@ tool github.com/usbarmory/tamago/cmd/tamago
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.27.0
-	github.com/gliderlabs/ssh v0.3.8
 	github.com/usbarmory/go-boot v1.6.1
 	github.com/usbarmory/tamago v1.26.1
 	github.com/usbarmory/virtio-net v0.0.0-20250916125519-733a429bd100
@@ -18,7 +17,6 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.18.2 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

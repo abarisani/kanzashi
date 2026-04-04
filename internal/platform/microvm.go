@@ -18,6 +18,7 @@ import (
 	"github.com/usbarmory/tamago/kvm/clock"
 	"github.com/usbarmory/tamago/kvm/virtio"
 	"github.com/usbarmory/tamago/soc/intel/ioapic"
+
 	"github.com/usbarmory/virtio-net"
 
 	_ "golang.org/x/crypto/x509roots/fallback"
