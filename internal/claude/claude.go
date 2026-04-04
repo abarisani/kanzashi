@@ -155,7 +155,7 @@ func executeTool(name string, input json.RawMessage) string {
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
-		return fmt.Sprintf("0x%08X)", val)
+		return fmt.Sprintf("0x%08X", val)
 	case "reg_write32":
 		var args RegWrite32Args
 		if err := json.Unmarshal(input, &args); err != nil {
@@ -245,9 +245,7 @@ func RunAgent(ctx context.Context, system, user string) {
 			case anthropic.TextBlock:
 				assistantBlocks = append(assistantBlocks, anthropic.NewTextBlock(v.Text))
 			case anthropic.ToolUseBlock:
-				var input any
-				json.Unmarshal(v.Input, &input)
-				assistantBlocks = append(assistantBlocks, anthropic.NewToolUseBlock(v.ID, input, v.Name))
+				assistantBlocks = append(assistantBlocks, anthropic.NewToolUseBlock(v.ID, v.Input, v.Name))
 			}
 		}
 
