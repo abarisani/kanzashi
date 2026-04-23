@@ -57,7 +57,7 @@ Example (Claude)
 The following example shows discovery of [QEMU #3336](https://gitlab.com/qemu-project/qemu/-/work_items/3336):
 
 ```
-./run-microvm.sh
+./run-uefi.sh
 
 ...
 
