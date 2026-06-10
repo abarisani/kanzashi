@@ -1,15 +1,15 @@
 module github.com/usbarmory/kanzashi
 
-go 1.26.2
+go 1.26.4
 
 tool github.com/usbarmory/tamago/cmd/tamago
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.27.0
-	github.com/usbarmory/go-boot v1.6.1
-	github.com/usbarmory/tamago v1.26.2
-	github.com/usbarmory/virtio-net v0.0.0-20250916125519-733a429bd100
-	golang.org/x/crypto/x509roots/fallback v0.0.0-20260311141749-982eaa62dfb7
+	github.com/usbarmory/go-boot v1.6.3-0.20260605110904-6a83eb0aa8d2
+	github.com/usbarmory/go-net v0.0.0-20260610092240-3e0af282db42
+	github.com/usbarmory/tamago v1.26.5-0.20260610074550-3e634b46c53d
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20260604135805-d37c95e27de6
 	google.golang.org/genai v1.51.0
 )
 
@@ -29,7 +29,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.14 // indirect
 	github.com/googleapis/gax-go/v2 v2.19.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
@@ -37,7 +37,7 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/u-root/u-root v0.15.0 // indirect
+	github.com/u-root/u-root v0.16.0 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -49,8 +49,8 @@ require (
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/term v0.41.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect

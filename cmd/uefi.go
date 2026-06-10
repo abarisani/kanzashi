@@ -22,6 +22,8 @@ import (
 	"github.com/usbarmory/go-boot/shell"
 	"github.com/usbarmory/go-boot/uefi"
 	"github.com/usbarmory/go-boot/uefi/x64"
+
+	"github.com/usbarmory/kanzashi/internal/platform"
 )
 
 const (
@@ -275,6 +277,7 @@ func terminateCmd(_ *shell.Interface, _ []string) (_ string, err error) {
 
 	// silence EFI Simple Text console
 	x64.Console.Out = 0
+	x64.Stdout = platform.Terminal.Tx
 
 	return
 }
