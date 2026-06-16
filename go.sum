@@ -68,6 +68,8 @@ github.com/usbarmory/go-boot v1.6.3-0.20260605110904-6a83eb0aa8d2 h1:maCRRpHMoli
 github.com/usbarmory/go-boot v1.6.3-0.20260605110904-6a83eb0aa8d2/go.mod h1:O8SlkX1sZXUXcHOvlprN73iUAaUneLJgOL4pz89kV6o=
 github.com/usbarmory/go-net v0.0.0-20260610092240-3e0af282db42 h1:i1qJvo7D8WXKxxDVxVQvYwhfXs/Veg8IN0K4zjwTBRE=
 github.com/usbarmory/go-net v0.0.0-20260610092240-3e0af282db42/go.mod h1:+6WiKCFJtJQZdNM2VpwQsYGo/aBJ39pN7nWx6Td3Z8s=
+github.com/usbarmory/tamago v1.26.5-0.20260610074550-3e634b46c53d h1:gHIfRHvSrSxvpNttGLDN9h8qabOXZ+iD2WKuEqcpuyk=
+github.com/usbarmory/tamago v1.26.5-0.20260610074550-3e634b46c53d/go.mod h1:HZkb+ZkzFl8aCxAuF7exsKX+XaNM0mYG9Iv7ooX1WDY=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 h1:OyrsyzuttWTSur2qN/Lm0m2a8yqyIjUVBZcxFPuXq2o=
