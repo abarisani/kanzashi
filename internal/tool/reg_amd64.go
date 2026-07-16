@@ -67,5 +67,5 @@ func WriteMSR(addr uint64, val uint64) (err error) {
 	reg.WriteMSR(addr, val)
 	err = checkFault()
 	fmt.Printf(" (%v)\n", err)
-	return checkFault()
+	return
 }
