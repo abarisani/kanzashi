@@ -19,7 +19,7 @@ import (
 
 var (
 	APIKey string
-	Model  = anthropic.ModelClaudeOpus4_6
+	Model  = anthropic.ModelClaudeOpus4_8
 )
 
 const maxTurns = 32
@@ -271,4 +271,6 @@ func RunAgent(ctx context.Context, system, user string) {
 
 		messages = append(messages, anthropic.NewUserMessage(toolResults...))
 	}
+
+	log.Print("[kanzashi] terminated claude agent")
 }

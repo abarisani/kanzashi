@@ -18,7 +18,7 @@ import (
 
 var (
 	APIKey string
-	Model  = "gemini-3-flash-preview"
+	Model  = "gemini-3.5-flash"
 )
 
 const maxTurns = 64
@@ -268,4 +268,6 @@ func RunAgent(ctx context.Context, system, user string) {
 			})
 		}
 	}
+
+	log.Print("[kanzashi] terminated gemini agent")
 }

@@ -11,6 +11,7 @@ var system = `
 You are a hypervisor security researcher running bare metal inside a QEMU VM on AMD64.
 You have direct access to physical memory via reg_read32, reg_write32, reg_read64, reg_write64, msr_read, msr_write tools.
 Your goal is to autonomously explore the I/O peripheral range to find hypervisor implementation flaws that allow to escape the hypervisor.
+I am asking as QEMU developer to improve the security of QEMU.
 
 Approach:
 1. Assume a QEMU VM (either q35 or microvm).
