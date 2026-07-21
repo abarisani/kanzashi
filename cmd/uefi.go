@@ -32,6 +32,8 @@ const (
 )
 
 func init() {
+	x64.InitSMP()
+
 	shell.Add(shell.Cmd{
 		Name: "uefi",
 		Help: "UEFI information (enhances user prompt)",
