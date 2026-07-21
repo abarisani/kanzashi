@@ -15,8 +15,7 @@ objcopy \
   printf '\x26\x02' | dd of=main.efi bs=1 seek=150 count=2 conv=notrunc,fsync && \
 
 mkdir -p $PWD/qemu-disk/efi/boot && cp $PWD/main.efi $PWD/qemu-disk/efi/boot/bootx64.efi && \
-
-OVMFCODE="OVMF_CODE.fd"
+OVMFCODE="OVMF_CODE.fd" && \
 qemu-system-x86_64 -machine q35,pit=off,pic=off \
         -m 4G -smp 1 \
         -enable-kvm -cpu host,invtsc=on,kvmclock=on -no-reboot \
