@@ -4,8 +4,6 @@ go 1.26.5
 
 tool github.com/usbarmory/tamago/cmd/tamago
 
-replace github.com/usbarmory/tamago => /mnt/git/public/tamago
-
 require (
 	github.com/anthropics/anthropic-sdk-go v1.57.0
 	github.com/beevik/ntp v0.3.0
