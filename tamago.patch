@@ -100,3 +100,49 @@ index 09f24ca..eb1377b 100644
 +		isr(VectorNumber())
  	}
  }
+diff --git a/arm64/exception.go b/arm64/exception.go
+index 348a806..c7885dc 100644
+--- a/arm64/exception.go
++++ b/arm64/exception.go
+@@ -33,7 +33,19 @@ func (fn exceptionHandler) vector() uint64 {
+ 	return **((**uint64)(unsafe.Pointer(&fn)))
+ }
+ 
+-var isThrowing bool
++var (
++	isThrowing bool
++	fault      int
++)
++
++func Faulty() bool {
++	if fault > 0 {
++		fault = 0
++		return true
++	} else {
++		return false
++	}
++}
+ 
+ // DefaultExceptionHandler handles an exception by printing its vector and
+ // processor mode before panicking.
+diff --git a/arm64/exception.s b/arm64/exception.s
+index e5f3d8c..e9f68ad 100644
+--- a/arm64/exception.s
++++ b/arm64/exception.s
+@@ -9,9 +9,14 @@
+ #include "textflag.h"
+ 
+ TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
++	STP	(R0, R1), -(1*16)(RSP)
++	MOVD	$1, R0
++	MOVD	R0, ·fault(SB)
+ 	MRS	ELR_EL1, R0
+-	MOVD	R0, 8(RSP)	// arg
+-	JMP	·systemException(SB)
++	ADD	$4, R0 // skip faulty instruction
++	MSR	R0, ELR_EL1
++	LDP	-(1*16)(RSP), (R0, R1)
++	ERET
+ 
+ // func set_vbar(addr uint64)
+ TEXT ·set_vbar(SB),NOSPLIT,$0

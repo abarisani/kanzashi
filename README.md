@@ -13,9 +13,9 @@ to achieve the following:
   * ability to import and run pure Go libraries
   * ability to bridge register/MSR read/write tooling with an LLM agent
 
-This example targets a QEMU `microvm` machine, it can be easily expanded to any
-`amd64`, `arm`, `arm64`, `riscv64` target as supported by
-[TamaGo](https://github.com/usbarmory/tamago).
+The `run-*.sh` scripts in this repository target executions in QEMU under a
+variety of `amd64` platforms and one `arm64` platform, support can be easily
+expanded to any target supported by [TamaGo](https://github.com/usbarmory/tamago).
 
 This effort is meant to show the effectiveness of TamaGo in bridging layers
 which are often considered far apart, rather than making any statements or
@@ -43,8 +43,8 @@ Usage
 
 6. Ensure `CLAUDE_API_KEY` and/or `GEMINI_API_KEY` are set in your environment.
 
-7. Launch either `run-microvm.sh`, `run-q35.sh` or `run-uefi.sh` for an example
-   QEMU configuration.
+7. Launch either `run-microvm.sh`, `run-q35.sh` `run-uefi.sh` or `run-imx8.sh`
+   for an example QEMU configuration.
 
 > [!WARNING]
 > The UEFI configuration requires `OVMF_CODE.fd`, from an [Open Virtual Machine
@@ -115,6 +115,12 @@ Interesting! The previous log shows that writing `0xFFFFFFFF` to
 IOAPIC redirection table entry 0x10 via the IOWIN register caused a segfault in
 QEMU. That's already a successful crash.
 ```
+
+Tool extension
+==============
+
+See the [wiki](https://github.com/abarisani/kanzashi/wiki) for a tutorial on
+extending kanzashi support.
 
 Author
 ======

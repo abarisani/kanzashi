@@ -17,12 +17,14 @@ reg_read32, reg_write32, reg_read64, reg_write64, msr_read, msr_write
 Do NOT touch the VirtIO network device (it maintains your session).
 
 ## Objective
+
 Find implementation flaws in OVMF EDK2 Boot Services and Runtime Services
 that enable memory corruption or arbitrary code execution in firmware context.
 
 ## Methodology
 
 ### Phase 1 — Static Source Analysis (before any hardware access)
+
 Fetch and analyze EDK2 source from:
   https://github.com/tianocore/edk2
 

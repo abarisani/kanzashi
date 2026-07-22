@@ -34,6 +34,7 @@ var (
 	Gateway  = "10.0.0.2"
 	Resolver = "8.8.8.8:53"
 	Terminal = microvm.UART0
+	CPU      = microvm.AMD64
 )
 
 func init() {

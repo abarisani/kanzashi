@@ -35,6 +35,7 @@ var (
 	Gateway  = "10.0.0.2"
 	Resolver = "8.8.8.8:53"
 	Terminal = gcp.UART0
+	CPU      = gcp.AMD64
 )
 
 func init() {

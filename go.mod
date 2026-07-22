@@ -6,9 +6,10 @@ tool github.com/usbarmory/tamago/cmd/tamago
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.57.0
-	github.com/usbarmory/go-boot v1.8.1
+	github.com/beevik/ntp v0.3.0
+	github.com/usbarmory/go-boot v1.8.2-0.20260722101458-9e10aa9d466f
 	github.com/usbarmory/go-net v0.0.0-20260714134120-c2c964e7084c
-	github.com/usbarmory/tamago v1.26.5
+	github.com/usbarmory/tamago v1.26.6-0.20260720101947-d9059b05af59
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20260714033321-10b54ffa51b1
 	google.golang.org/genai v1.63.0
 )

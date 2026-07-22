@@ -44,6 +44,7 @@ var (
 	Gateway  = "10.0.0.2"
 	Resolver = "8.8.8.8:53"
 	Terminal = x64.UART0
+	CPU      = x64.AMD64
 )
 
 func init() {
