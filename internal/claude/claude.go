@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -24,6 +26,18 @@ var (
 
 const maxTurns = 32
 
+// Addresses and values are passed as strings rather than JSON integers: JSON
+// has no hexadecimal literal notation, so an "integer" parameter forces the
+// model to convert hex to decimal itself, which is unreliable for large
+// values. Keeping the hex literal intact and parsing it here removes that
+// conversion step entirely.
+const (
+	addrDesc  = `Register address as a hex string, e.g. "0xFED40F00". Pass the value verbatim, do not convert it to decimal.`
+	msrDesc   = `MSR index as a hex string, e.g. "0x3A". Pass the value verbatim, do not convert it to decimal.`
+	val32Desc = `32-bit value to write, as a hex string, e.g. "0x00000001". Pass the value verbatim, do not convert it to decimal.`
+	val64Desc = `64-bit value to write, as a hex string, e.g. "0x0000000000000001". Pass the value verbatim, do not convert it to decimal.`
+)
+
 var tools = []anthropic.ToolUnionParam{
 	{OfTool: &anthropic.ToolParam{
 		Name:        "reg_read32",
@@ -32,8 +46,9 @@ var tools = []anthropic.ToolUnionParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
-					"type":        "integer",
-					"description": "Physical memory address to read from (e.g. 0xfeb00000)",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": addrDesc,
 				},
 			},
 			Required: []string{"address"},
@@ -46,12 +61,14 @@ var tools = []anthropic.ToolUnionParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
-					"type":        "integer",
-					"description": "Physical memory address to write to (e.g. 0xfeb00000)",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": addrDesc,
 				},
 				"value": map[string]interface{}{
-					"type":        "integer",
-					"description": "32-bit value to write",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": val32Desc,
 				},
 			},
 			Required: []string{"address", "value"},
@@ -64,8 +81,9 @@ var tools = []anthropic.ToolUnionParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
-					"type":        "integer",
-					"description": "Physical memory address to read from (e.g. 0xfeb00000)",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": addrDesc,
 				},
 			},
 			Required: []string{"address"},
@@ -78,12 +96,14 @@ var tools = []anthropic.ToolUnionParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
-					"type":        "integer",
-					"description": "Physical memory address to write to (e.g. 0xfeb00000)",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": addrDesc,
 				},
 				"value": map[string]interface{}{
-					"type":        "integer",
-					"description": "64-bit value to write",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": val64Desc,
 				},
 			},
 			Required: []string{"address", "value"},
@@ -96,8 +116,9 @@ var tools = []anthropic.ToolUnionParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
-					"type":        "integer",
-					"description": "Physical memory address to read from (e.g. 0xfeb00000)",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": msrDesc,
 				},
 			},
 			Required: []string{"address"},
@@ -110,12 +131,14 @@ var tools = []anthropic.ToolUnionParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"address": map[string]interface{}{
-					"type":        "integer",
-					"description": "Physical memory address to write to (e.g. 0xfeb00000)",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": msrDesc,
 				},
 				"value": map[string]interface{}{
-					"type":        "integer",
-					"description": "64-bit value to write",
+					"type":        "string",
+					"pattern":     "^0[xX][0-9a-fA-F]+$",
+					"description": val64Desc,
 				},
 			},
 			Required: []string{"address", "value"},
@@ -127,21 +150,27 @@ var tools = []anthropic.ToolUnionParam{
 }
 
 type RegRead32Args struct {
-	Address uint32 `json:"address"`
+	Address string `json:"address"`
 }
 
 type RegWrite32Args struct {
-	Address uint32 `json:"address"`
-	Value   uint32 `json:"value"`
+	Address string `json:"address"`
+	Value   string `json:"value"`
 }
 
 type RegRead64Args struct {
-	Address uint64 `json:"address"`
+	Address string `json:"address"`
 }
 
 type RegWrite64Args struct {
-	Address uint64 `json:"address"`
-	Value   uint64 `json:"value"`
+	Address string `json:"address"`
+	Value   string `json:"value"`
+}
+
+// parseUint parses an unsigned integer literal of at most the given bit size,
+// accepting the "0x" prefix (as well as "0o" and "0b") via strconv base 0.
+func parseUint(s string, bits int) (uint64, error) {
+	return strconv.ParseUint(strings.TrimSpace(s), 0, bits)
 }
 
 func executeTool(name string, input json.RawMessage) string {
@@ -151,7 +180,11 @@ func executeTool(name string, input json.RawMessage) string {
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
-		val, err := tool.Read32(args.Address)
+		addr, err := parseUint(args.Address, 32)
+		if err != nil {
+			return fmt.Sprintf("error parsing address %q: %v", args.Address, err)
+		}
+		val, err := tool.Read32(uint32(addr))
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
@@ -161,8 +194,15 @@ func executeTool(name string, input json.RawMessage) string {
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
-		err := tool.Write32(args.Address, args.Value)
+		addr, err := parseUint(args.Address, 32)
 		if err != nil {
+			return fmt.Sprintf("error parsing address %q: %v", args.Address, err)
+		}
+		val, err := parseUint(args.Value, 32)
+		if err != nil {
+			return fmt.Sprintf("error parsing value %q: %v", args.Value, err)
+		}
+		if err := tool.Write32(uint32(addr), uint32(val)); err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
 		return "ok"
@@ -171,18 +211,29 @@ func executeTool(name string, input json.RawMessage) string {
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
-		val, err := tool.Read64(args.Address)
+		addr, err := parseUint(args.Address, 64)
+		if err != nil {
+			return fmt.Sprintf("error parsing address %q: %v", args.Address, err)
+		}
+		val, err := tool.Read64(addr)
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
-		return fmt.Sprintf("0x%16X", val)
+		return fmt.Sprintf("0x%016X", val)
 	case "reg_write64":
 		var args RegWrite64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
-		err := tool.Write64(args.Address, args.Value)
+		addr, err := parseUint(args.Address, 64)
 		if err != nil {
+			return fmt.Sprintf("error parsing address %q: %v", args.Address, err)
+		}
+		val, err := parseUint(args.Value, 64)
+		if err != nil {
+			return fmt.Sprintf("error parsing value %q: %v", args.Value, err)
+		}
+		if err := tool.Write64(addr, val); err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
 		return "ok"
@@ -191,18 +242,29 @@ func executeTool(name string, input json.RawMessage) string {
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
-		val, err := tool.ReadMSR(args.Address)
+		addr, err := parseUint(args.Address, 64)
+		if err != nil {
+			return fmt.Sprintf("error parsing address %q: %v", args.Address, err)
+		}
+		val, err := tool.ReadMSR(addr)
 		if err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
-		return fmt.Sprintf("0x%16X", val)
+		return fmt.Sprintf("0x%016X", val)
 	case "msr_write":
 		var args RegWrite64Args
 		if err := json.Unmarshal(input, &args); err != nil {
 			return fmt.Sprintf("error parsing args: %v", err)
 		}
-		err := tool.WriteMSR(args.Address, args.Value)
+		addr, err := parseUint(args.Address, 64)
 		if err != nil {
+			return fmt.Sprintf("error parsing address %q: %v", args.Address, err)
+		}
+		val, err := parseUint(args.Value, 64)
+		if err != nil {
+			return fmt.Sprintf("error parsing value %q: %v", args.Value, err)
+		}
+		if err := tool.WriteMSR(addr, val); err != nil {
 			return fmt.Sprintf("error:%v", err)
 		}
 		return "ok"

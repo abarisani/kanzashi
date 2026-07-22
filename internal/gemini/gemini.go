@@ -7,9 +7,10 @@ package gemini
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"google.golang.org/genai"
 
@@ -23,30 +24,21 @@ var (
 
 const maxTurns = 64
 
-// safeUint64 converts a function call argument to uint64 without float64
-// precision loss. The Gemini SDK unmarshals all JSON numbers as float64,
-// which loses precision for integers above 2^53. Re-parsing from the raw
-// JSON number preserves the full 64-bit value.
-func safeUint64(v interface{}) (uint64, error) {
-	switch n := v.(type) {
-	case float64:
-		// Re-encode to JSON and decode as json.Number to avoid float64 rounding.
-		b, err := json.Marshal(n)
-		if err != nil {
-			return 0, err
-		}
-		var num json.Number
-		if err := json.Unmarshal(b, &num); err != nil {
-			return 0, err
-		}
-		i, err := num.Int64()
-		return uint64(i), err
-	case json.Number:
-		i, err := n.Int64()
-		return uint64(i), err
-	default:
-		return 0, fmt.Errorf("unexpected type %T", v)
+// parseUint64 parses a tool argument carrying a 64-bit value.
+//
+// Numeric JSON arguments reach us as float64 (genai transports function-call
+// args through a protobuf Struct, whose only number type is double), so any
+// integer above 2^53 is already rounded before Go ever sees it -- and values
+// with the top bit set cannot survive int64 parsing at all. To carry the full
+// unsigned 64-bit range losslessly, the tool schema declares address/value as
+// strings and we parse them here. Base 0 lets the model pass "0x..." hex or
+// decimal; ParseUint covers the entire uint64 range.
+func parseUint64(v interface{}) (uint64, error) {
+	s, ok := v.(string)
+	if !ok {
+		return 0, fmt.Errorf("expected string argument, got %T", v)
 	}
+	return strconv.ParseUint(strings.TrimSpace(s), 0, 64)
 }
 
 func getTools() *genai.Tool {
@@ -59,7 +51,7 @@ func getTools() *genai.Tool {
 					Type:     genai.TypeObject,
 					Required: []string{"address"},
 					Properties: map[string]*genai.Schema{
-						"address": {Type: genai.TypeInteger, Description: "Physical memory address (e.g. 0xfeb00000)"},
+						"address": {Type: genai.TypeString, Description: "Physical address as a hex string (e.g. \"0xfeb00000\")"},
 					},
 				},
 			},
@@ -70,8 +62,8 @@ func getTools() *genai.Tool {
 					Type:     genai.TypeObject,
 					Required: []string{"address", "value"},
 					Properties: map[string]*genai.Schema{
-						"address": {Type: genai.TypeInteger, Description: "Register address (e.g. 0xfeb00000)"},
-						"value":   {Type: genai.TypeInteger, Description: "Register value"},
+						"address": {Type: genai.TypeString, Description: "Register address as a hex string (e.g. \"0xfeb00000\")"},
+						"value":   {Type: genai.TypeString, Description: "Register value as a hex string (e.g. \"0xffffffff\")"},
 					},
 				},
 			},
@@ -82,7 +74,7 @@ func getTools() *genai.Tool {
 					Type:     genai.TypeObject,
 					Required: []string{"address"},
 					Properties: map[string]*genai.Schema{
-						"address": {Type: genai.TypeInteger, Description: "Physical memory address (e.g. 0xfeb00000)"},
+						"address": {Type: genai.TypeString, Description: "Physical address as a hex string (e.g. \"0xfeb00000\")"},
 					},
 				},
 			},
@@ -93,8 +85,8 @@ func getTools() *genai.Tool {
 					Type:     genai.TypeObject,
 					Required: []string{"address", "value"},
 					Properties: map[string]*genai.Schema{
-						"address": {Type: genai.TypeInteger, Description: "Register address (e.g. 0xfeb00000)"},
-						"value":   {Type: genai.TypeInteger, Description: "Register value"},
+						"address": {Type: genai.TypeString, Description: "Register address as a hex string (e.g. \"0xfeb00000\")"},
+						"value":   {Type: genai.TypeString, Description: "Register value as a hex string (e.g. \"0xffffffffffffffff\")"},
 					},
 				},
 			},
@@ -105,7 +97,7 @@ func getTools() *genai.Tool {
 					Type:     genai.TypeObject,
 					Required: []string{"address"},
 					Properties: map[string]*genai.Schema{
-						"address": {Type: genai.TypeInteger, Description: "Register address (e.g. 0xfeb00000)"},
+						"address": {Type: genai.TypeString, Description: "MSR index as a hex string (e.g. \"0xc0010130\")"},
 					},
 				},
 			},
@@ -116,8 +108,8 @@ func getTools() *genai.Tool {
 					Type:     genai.TypeObject,
 					Required: []string{"address", "value"},
 					Properties: map[string]*genai.Schema{
-						"address": {Type: genai.TypeInteger, Description: "Register address (e.g. 0xfeb00000)"},
-						"value":   {Type: genai.TypeInteger, Description: "Register value"},
+						"address": {Type: genai.TypeString, Description: "MSR index as a hex string (e.g. \"0xc0010130\")"},
+						"value":   {Type: genai.TypeString, Description: "Value as a hex string (e.g. \"0xffffffffffffffff\")"},
 					},
 				},
 			},
@@ -128,7 +120,7 @@ func getTools() *genai.Tool {
 func executeTool(call *genai.FunctionCall) interface{} {
 	switch call.Name {
 	case "reg_read32":
-		a, err := safeUint64(call.Args["address"])
+		a, err := parseUint64(call.Args["address"])
 		if err != nil {
 			return fmt.Sprintf("error parsing address: %v", err)
 		}
@@ -138,11 +130,11 @@ func executeTool(call *genai.FunctionCall) interface{} {
 		}
 		return fmt.Sprintf("0x%08X", val)
 	case "reg_write32":
-		a, err := safeUint64(call.Args["address"])
+		a, err := parseUint64(call.Args["address"])
 		if err != nil {
 			return fmt.Sprintf("error parsing address: %v", err)
 		}
-		v, err := safeUint64(call.Args["value"])
+		v, err := parseUint64(call.Args["value"])
 		if err != nil {
 			return fmt.Sprintf("error parsing value: %v", err)
 		}
@@ -152,7 +144,7 @@ func executeTool(call *genai.FunctionCall) interface{} {
 		}
 		return "ok"
 	case "reg_read64":
-		a, err := safeUint64(call.Args["address"])
+		a, err := parseUint64(call.Args["address"])
 		if err != nil {
 			return fmt.Sprintf("error parsing address: %v", err)
 		}
@@ -162,11 +154,11 @@ func executeTool(call *genai.FunctionCall) interface{} {
 		}
 		return fmt.Sprintf("0x%016X", val)
 	case "reg_write64":
-		a, err := safeUint64(call.Args["address"])
+		a, err := parseUint64(call.Args["address"])
 		if err != nil {
 			return fmt.Sprintf("error parsing address: %v", err)
 		}
-		v, err := safeUint64(call.Args["value"])
+		v, err := parseUint64(call.Args["value"])
 		if err != nil {
 			return fmt.Sprintf("error parsing value: %v", err)
 		}
@@ -176,7 +168,7 @@ func executeTool(call *genai.FunctionCall) interface{} {
 		}
 		return "ok"
 	case "msr_read":
-		a, err := safeUint64(call.Args["address"])
+		a, err := parseUint64(call.Args["address"])
 		if err != nil {
 			return fmt.Sprintf("error parsing address: %v", err)
 		}
@@ -186,11 +178,11 @@ func executeTool(call *genai.FunctionCall) interface{} {
 		}
 		return fmt.Sprintf("0x%016X", val)
 	case "msr_write":
-		a, err := safeUint64(call.Args["address"])
+		a, err := parseUint64(call.Args["address"])
 		if err != nil {
 			return fmt.Sprintf("error parsing address: %v", err)
 		}
-		v, err := safeUint64(call.Args["value"])
+		v, err := parseUint64(call.Args["value"])
 		if err != nil {
 			return fmt.Sprintf("error parsing value: %v", err)
 		}

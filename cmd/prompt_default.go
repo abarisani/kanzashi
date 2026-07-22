@@ -26,4 +26,4 @@ Approach:
 
 Think step by step and use the tools iteratively.`
 
-var user = fmt.Sprintf("Begin autonomous security analysis of QEMU VM. Explore freely. Briefly explain what you are doing as you go. You are on %s", runtime.GOARCH)
+var user = fmt.Sprintf("Begin autonomous security analysis of QEMU VM. Explore freely. Briefly explain what you are doing as you go. You are on %s.", runtime.GOARCH)
