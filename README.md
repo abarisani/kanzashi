@@ -13,13 +13,14 @@ to achieve the following:
   * ability to import and run pure Go libraries
   * ability to bridge register/MSR read/write tooling with an LLM agent
 
-The `run-*.sh` scripts in this repository target executions in QEMU under a
-variety of `amd64` platforms and one `arm64` platform, support can be easily
-expanded to any target supported by [TamaGo](https://github.com/usbarmory/tamago).
+The `run-*.sh` scripts in this repository target VM execution in a variety of
+`amd64` platforms and one `arm64` platform, support can be easily expanded to
+any target supported by [TamaGo](https://github.com/usbarmory/tamago) (VM or
+real).
 
 This effort is meant to show the effectiveness of TamaGo in bridging layers
 which are often considered far apart, rather than making any statements or
-promises on the effectiveness of wan LLM-drive approach in testing QEMU.
+promises on the effectiveness of an LLM-drive approach in security testing.
 
 PRs are welcome to add success stories/bugs found with this approach.
 
@@ -44,7 +45,7 @@ Usage
 6. Ensure `CLAUDE_API_KEY` and/or `GEMINI_API_KEY` are set in your environment.
 
 7. Launch either `run-microvm.sh`, `run-q35.sh` `run-uefi.sh` or `run-imx8.sh`
-   for an example QEMU configuration.
+   for an example QEMU configuration, `run-firecracker.sh` for Firecracker.
 
 > [!WARNING]
 > The UEFI configuration requires `OVMF_CODE.fd`, from an [Open Virtual Machine
