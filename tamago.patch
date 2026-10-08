@@ -34,10 +34,10 @@ index 7a1c5ea..6772108 100644
  }
  
 diff --git a/amd64/exception.s b/amd64/exception.s
-index 7953e56..d794868 100644
+index 8683481..1f195ba 100644
 --- a/amd64/exception.s
 +++ b/amd64/exception.s
-@@ -12,21 +12,40 @@
+@@ -12,21 +12,34 @@
  TEXT ·handleException(SB),NOSPLIT|NOFRAME,$0
  	CLI
  
@@ -64,15 +64,9 @@ index 7953e56..d794868 100644
  	MOVQ	$·SystemExceptionHandler(SB), AX
 -	MOVQ	(AX), AX
 -	PUSHQ	AX
--	CALL	runtime·systemstack(SB)
+-	CALL	runtime·CallOnG0(SB)
 +	CMPQ	AX, $0
 +	JE	done
-+
-+	// call exception handler on system stack (g0)
-+	//MOVQ	(AX), AX
-+	//PUSHQ	AX
-+	//CALL	runtime·systemstack(SB)
-+	//POPQ	AX
 +done:
 +	MOVQ	24(SP), AX
 +	ADDQ	$2, AX // skip faulty instruction
@@ -89,19 +83,19 @@ index 7953e56..d794868 100644
  // To allow a single user-defined ISR for all vectors, a jump table of CALLs,
  // which save the vector PC on the stack, is built to use as IDT offsets.
 diff --git a/amd64/irq.go b/amd64/irq.go
-index 09f24ca..eb1377b 100644
+index ff47f07..338f666 100644
 --- a/amd64/irq.go
 +++ b/amd64/irq.go
-@@ -164,6 +164,6 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
- 		// only after we are sleeping.
- 		go cpu.ClearInterrupt()
+@@ -163,6 +163,6 @@ func (cpu *CPU) ServiceInterrupts(isr func(int)) {
+ 	for {
+ 		cpu.ClearInterrupt()
  		<-c
 -		isr(currentVectorNumber())
 +		isr(VectorNumber())
  	}
  }
 diff --git a/arm64/exception.go b/arm64/exception.go
-index 348a806..c7885dc 100644
+index 44a1edc..a80b6e3 100644
 --- a/arm64/exception.go
 +++ b/arm64/exception.go
 @@ -33,7 +33,19 @@ func (fn exceptionHandler) vector() uint64 {

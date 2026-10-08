@@ -107,11 +107,10 @@ func startInterruptHandler(dev *vnet.Net, iface *gnet.Interface, cpu *amd64.CPU,
 
 	// optimize CPU idle management as IRQs are enabled
 	goos.Idle = func(pollUntil int64) {
-		if pollUntil == 0 {
-			return
+		if pollUntil > 0 {
+			cpu.SetAlarm(pollUntil)
 		}
 
-		cpu.SetAlarm(pollUntil)
 		cpu.WaitInterrupt()
 		cpu.SetAlarm(0)
 	}
