@@ -1,6 +1,6 @@
 module github.com/usbarmory/kanzashi
 
-go 1.27.2
+go 1.27.3
 
 tool github.com/usbarmory/tamago/cmd/tamago
 
@@ -9,8 +9,8 @@ require (
 	github.com/beevik/ntp v0.3.0
 	github.com/usbarmory/go-boot v1.9.2-0.20261009093434-4705a94f637f
 	github.com/usbarmory/go-net v0.0.0-20260924083839-356cbf14db9e
-	github.com/usbarmory/tamago v1.27.2
-	golang.org/x/crypto/x509roots/fallback v0.0.0-20260714033321-10b54ffa51b1
+	github.com/usbarmory/tamago v1.27.3
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20261020153306-9f2b28d4331a
 	google.golang.org/genai v1.63.0
 )
 
